@@ -8,7 +8,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -160,8 +159,7 @@ public class Main {
 
 			escribir(hMacString);
 
-			String r = leer();
-
+			leer();
 
 
 		}catch(Exception e)
@@ -259,7 +257,7 @@ public class Main {
 	}
 	public static void main(String[] args)
 	{
-		Main cliente = new Main();
+		Main client = new Main();
 	}
 
 }
