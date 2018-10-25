@@ -2,10 +2,10 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="F:/MIGUEL WINDOWS 7/Desktop/caso2_infracomp/jars/bcpg-jdk15on-155.jar"/>
-	<classpathentry kind="lib" path="F:/MIGUEL WINDOWS 7/Desktop/caso2_infracomp/jars/bcpkix-jdk15on-155.jar"/>
-	<classpathentry kind="lib" path="F:/MIGUEL WINDOWS 7/Desktop/caso2_infracomp/jars/bcprov-jdk15on-155.jar"/>
-	<classpathentry kind="lib" path="F:/MIGUEL WINDOWS 7/Desktop/caso2_infracomp/jars/Servidorcs.jar"/>
-	<classpathentry kind="lib" path="F:/MIGUEL WINDOWS 7/Desktop/caso2_infracomp/jars/Servidorss.jar"/>
+	<classpathentry kind="lib" path="C:/Users/ma.puentes/Desktop/caso2_infracomp/jars/bcpg-jdk15on-155.jar"/>
+	<classpathentry kind="lib" path="C:/Users/ma.puentes/Desktop/caso2_infracomp/jars/bcpkix-jdk15on-155.jar"/>
+	<classpathentry kind="lib" path="C:/Users/ma.puentes/Desktop/caso2_infracomp/jars/bcprov-jdk15on-155.jar"/>
+	<classpathentry kind="lib" path="C:/Users/ma.puentes/Desktop/caso2_infracomp/jars/Servidorcs.jar"/>
+	<classpathentry kind="lib" path="C:/Users/ma.puentes/Desktop/caso2_infracomp/jars/Servidorss.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
