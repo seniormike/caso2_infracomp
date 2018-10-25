@@ -74,7 +74,7 @@ import org.bouncycastle.x509.*;
 
 
 
-public class SeguridadEjemplo {
+public class Seguridad {
 	public static final String HMACMD5 = "HMACMD5";
 	public static final String HMACSHA1 = "HMACSHA1";
 	public static final String HMACSHA256 = "HMACSHA256";

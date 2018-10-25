@@ -24,7 +24,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import com.sun.corba.se.impl.oa.poa.ActiveObjectMap.Key;
 import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 
-import principal.SeguridadEjemplo;
+import principal.Seguridad;
 //import utils.Transformacion;
 
 public class Main {
@@ -75,7 +75,7 @@ public class Main {
 			keyGen = KeyPairGenerator.getInstance(algoritmo1, "BC");
 			keyGen.initialize(1024);
 			llaves=keyGen.generateKeyPair();
-			byte[] b = SeguridadEjemplo.generarCertificado(llaves).getEncoded();
+			byte[] b = Seguridad.generarCertificado(llaves).getEncoded();
 			//			System.out.println(Transformacion.transformar(b));
 			sock.getOutputStream().write( b);
 			sock.getOutputStream().flush();
