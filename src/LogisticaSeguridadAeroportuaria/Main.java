@@ -1,4 +1,4 @@
-package principal;
+package LogisticaSeguridadAeroportuaria;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
@@ -15,8 +16,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -25,15 +29,22 @@ import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
 
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.asn1.x509.X509Extensions;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.x509.X509V3CertificateGenerator;
 
 import com.sun.corba.se.impl.oa.poa.ActiveObjectMap.Key;
 import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 
-import principal.Seguridad;
-//import utils.Transformacion;
 
 public class Main {
 
@@ -81,7 +92,7 @@ public class Main {
 			keyGen = KeyPairGenerator.getInstance(algoritmo1, "BC");
 			keyGen.initialize(1024);
 			llaves = keyGen.generateKeyPair();
-			byte[] b = Seguridad.generarCertificado(llaves).getEncoded();
+			byte[] b = generarCertificado(llaves).getEncoded();
 			String transformado = toHexString(b);
 			escribir(transformado);
 
@@ -225,6 +236,27 @@ public class Main {
 		}
 	}
 
+	public static java.security.cert.X509Certificate generarCertificado(KeyPair pair) throws InvalidKeyException,
+	NoSuchProviderException, SignatureException, IllegalStateException, NoSuchAlgorithmException, CertificateException {
+		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
+		X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
+		certGen.setSerialNumber(BigInteger.valueOf(System.currentTimeMillis()));
+		certGen.setIssuerDN(new X500Principal("CN=Test Certificate"));
+		certGen.setNotBefore(new Date(System.currentTimeMillis() - 10000000));
+		certGen.setNotAfter(new Date(System.currentTimeMillis() + 10000000));
+		certGen.setSubjectDN(new X500Principal("CN=Test Certificate"));
+		certGen.setPublicKey(pair.getPublic());
+		certGen.setSignatureAlgorithm("SHA256WithRSAEncryption");
+
+		certGen.addExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(false));
+		certGen.addExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.digitalSignature| KeyUsage.keyEncipherment));
+		certGen.addExtension(X509Extensions.ExtendedKeyUsage, true, new ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth));
+
+		certGen.addExtension(X509Extensions.SubjectAlternativeName, false, new GeneralNames(
+				new GeneralName(GeneralName.rfc822Name, "test@test.test")));
+		return certGen.generate(pair.getPrivate(), "BC") ;
+	}
 	public static void main(String[] args)
 	{
 		Main cliente = new Main();
