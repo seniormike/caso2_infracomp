@@ -1,5 +1,4 @@
 package LogisticaSeguridadAeroportuaria;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -20,7 +19,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -30,7 +28,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
-
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.GeneralName;
@@ -41,179 +38,163 @@ import org.bouncycastle.asn1.x509.X509Extensions;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 
-import com.sun.corba.se.impl.oa.poa.ActiveObjectMap.Key;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
+
+/**
+ * 	 @authors
+ * - Minh Huy Mattieu Iung
+ * - Miguel Angel Puentes
+ * - Kelvin Santiago Estupinan
+ */
+
+public class Main
+{
+	public BufferedReader read;
+	public PrintWriter write;
+	public KeyPair keys;
+	public Socket socket;
+	public X509Certificate serverCertificate;
 
 
-public class Main {
-
-	public BufferedReader r;
-	public PrintWriter w;
-	public KeyPair llaves;
-	public Socket sock;
-	public X509Certificate certificadoServidor;
-
-
-	public final static String algoritmo1="RSA"; //RSA
-	public String algoritmo2="HMACMD5"; //HMACMD5
-	public String algoritmo3="AES"; //DES
+	/**
+	 * Algoritmos
+	 */
+	public String algoritmo1 = "RSA"; //RSA
+	public String algoritmo2 = "AES"; //AES
+	public String algoritmo3 = "HMACMD5"; //HMACMD5
 
 
+	/**
+	 * Método Constructor de la clase.
+	 */
 	public Main()
 	{
 
+		/**
+		 * Se configuran los parametros del socket para permitir la comunicación con el servidor.
+		 */
 		try {
-			sock = new Socket("localhost",5555);
-			w = new PrintWriter(sock.getOutputStream(), true );
-			r = new BufferedReader( new InputStreamReader( sock.getInputStream( )) );
-		} catch (Exception e) {
-			System.out.println("Error iniciando conexión");
+			socket = new Socket("localhost",5555);
+			write = new PrintWriter(socket.getOutputStream(),true);
+			read = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		}
+		catch (Exception e)
+		{
+			System.out.println("Error al conectarse");
 			e.printStackTrace();
 		}
-		protocolo();
-
-
+		protocole();
 	}
 
-
-	private void protocolo()
+	/**
+	 * Método que representa y contiene el protocolo de comunicación entre
+	 * el cliente y el servidor con seguridad.
+	 */
+	private void protocole()
 	{
-
-		String recibido = null;
-
-		escribir("HOLA");
-		leer();
-		escribir("ALGORITMOS:"+algoritmo3+":"+algoritmo1+":"+algoritmo2);
-		leer();
+		toWrite("HOLA");
+		toRead();
+		toWrite("ALGORITMOS:"+algoritmo2+":"+algoritmo1+":"+algoritmo3);
+		toRead();
 		Security.addProvider(new BouncyCastleProvider());
 		KeyPairGenerator keyGen;
 		try {
 			keyGen = KeyPairGenerator.getInstance(algoritmo1, "BC");
 			keyGen.initialize(1024);
-			llaves = keyGen.generateKeyPair();
-			byte[] b = generarCertificado(llaves).getEncoded();
-			String transformado = toHexString(b);
-			escribir(transformado);
+			keys = keyGen.generateKeyPair();
+			byte[] b = generarCertificado(keys).getEncoded();
+			String transformado = toStringHex(b);
+			toWrite(transformado);
 
-			String respuesta = leer();
-			System.out.println("Resp" + respuesta);
+			String respuesta = toRead();
 
 			if(!respuesta.equals("OK"))
 			{
-				cerrar();
+				closeGeneral();
 				System.out.println("Error, el servidor no reconoció el certificado recibido.");
 				return;
 			}
 
-			String certificado = leer();
-			System.out.println("Cert" + certificado);
+			String certificado = toRead();
 
 			byte [] arrr = new byte[520];
-			arrr = toByteArray(certificado);
+			arrr = toArrayByte(certificado);
 
 			CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
 			InputStream in = new ByteArrayInputStream(arrr);
 
-			certificadoServidor = (X509Certificate)certFactory.generateCertificate(in);
+			serverCertificate = (X509Certificate)certFactory.generateCertificate(in);
 
 
-			if(certificadoServidor != null)
+			if(serverCertificate != null)
 			{
-				escribir("OK");
+				toWrite("OK");
 			}
 			else
 			{
-				escribir("ERROR");
-				System.out.println("No recibió el certificado");
+				toWrite("ERROR");
+				System.out.println("No se recibió el certificado");
 			}
 
-			String llaveSimetrica = leer();
-			System.out.println("llaveSimetrica: "+ llaveSimetrica);
+			String llaveSimetrica = toRead();
+
+			byte[] descencriptada = AssymetricDecipher(toArrayByte(llaveSimetrica),keys,"RSA");
+
+			byte [] cifrada = AssymetricCipher(descencriptada, serverCertificate.getPublicKey(), "RSA");
+
+			String cifradaEnString = toStringHex(cifrada);
+
+			toWrite(cifradaEnString);
+
+			toRead();
 
 
+			String consultation = (int)(Math.random()*10000)+"";
 
-			byte[] descencriptada = DescifrarAsimetrico(toByteArray(llaveSimetrica),llaves,"RSA");
+			SecretKey llaveN = new SecretKeySpec(descencriptada, 0, descencriptada.length,algoritmo2);
 
-			byte [] cifrada = cifrarAsimetrico(descencriptada, certificadoServidor.getPublicKey(), "RSA");
-
-			String cifradaEnString = toHexString(cifrada);
-
-			escribir(cifradaEnString);
-
-			String resp = leer();
-
-			String consulta = "35";
-
-			SecretKey llaveN = new SecretKeySpec(descencriptada, 0, descencriptada.length,algoritmo3);
-
-			Cipher c = Cipher.getInstance(algoritmo3); 
+			Cipher c = Cipher.getInstance(algoritmo2); 
 			c.init(Cipher.ENCRYPT_MODE, llaveN); 
-			byte[] answ = c.doFinal(consulta.getBytes());
-			String answString = toHexString(answ);
-			escribir(answString);
+			byte[] answ = c.doFinal(consultation.getBytes());
+			String answString = toStringHex(answ);
+			toWrite(answString);
 
-			Mac hmac = Mac.getInstance(algoritmo2);
+			Mac hmac = Mac.getInstance(algoritmo3);
 			hmac.init(llaveN);
-			byte[] bMac = hmac.doFinal(consulta.getBytes());
-			String hMacString = toHexString(bMac);
+			byte[] bMac = hmac.doFinal(consultation.getBytes());
+			String hMacString = toStringHex(bMac);
 
-			escribir(hMacString);
+			toWrite(hMacString);
 
-			leer();
+			toRead();
 
-
-		}catch(Exception e)
+		}
+		catch(Exception e)
 		{
 			e.printStackTrace();
 		}
-
-
-
 	}
 
-	private void escribir(String string)
+	/**
+	 * Método que se encarga de enviar el string dado por parametro al servidor.
+	 * Además, imprime en consola.
+	 * @param string
+	 */
+	private void toWrite(String string)
 	{
-		w.println(string);
+		write.println(string);
 		System.out.println(string);
 	}
-
-	public String toHexString(byte[] array)
-	{
-		return DatatypeConverter.printHexBinary(array);
-	}
-	public byte[] toByteArray(String a)
-	{
-		return DatatypeConverter.parseHexBinary(a);
-	}
-
-	public static byte[] DescifrarAsimetrico (byte[] msg, KeyPair key , String alg) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,IllegalBlockSizeException, BadPaddingException
-	{
-		Cipher decifrador = Cipher.getInstance(alg); 
-		decifrador.init(Cipher.DECRYPT_MODE, key.getPrivate()); 
-		return decifrador.doFinal(msg);
-	}
-	public static byte[] cifrarAsimetrico (byte[] msg, KeyPair key , String algo) throws IllegalBlockSizeException, BadPaddingException, InvalidKeyException,NoSuchAlgorithmException, NoSuchPaddingException
-	{
-		Cipher decifrador = Cipher.getInstance(algo); 
-		decifrador.init(Cipher.ENCRYPT_MODE, key.getPublic()); 
-		return decifrador.doFinal(msg);
-	}
-
-	public static byte[] cifrarAsimetrico (byte[] msg, PublicKey key , String algo) throws IllegalBlockSizeException, BadPaddingException, InvalidKeyException,NoSuchAlgorithmException, NoSuchPaddingException
-	{
-		Cipher decifrador = Cipher.getInstance(algo); 
-		decifrador.init(Cipher.ENCRYPT_MODE, key); 
-		return decifrador.doFinal(msg);
-	}
-
-
-	private String leer()
+	/**
+	 * Método que se encarga de leer el string que se recibe del servidor.
+	 * Además, imprime el mensaje en consola.
+	 * @param string
+	 */
+	private String toRead()
 	{
 		System.out.println("leyendo");
 		String m="";
 		try {
-
-			m=r.readLine();
+			m = read.readLine();
 			System.out.println(m);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -221,19 +202,110 @@ public class Main {
 		return m;
 	}
 
-
-	private void cerrar() 
+	/**
+	 * Método que se encarga de closeGeneral todas los canales de comunicación en caso de que haya
+	 * un error en el protocolo.
+	 */
+	private void closeGeneral() 
 	{
 		try {
-			w.close( );
-			r.close( );
-			sock.close( );
-		} catch (IOException e) {
-			// Error cerrando conexión
+			write.close( );
+			read.close( );
+			socket.close( );
+		} catch (IOException e)
+		{
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Método que convierte un arreglo de bytes a un string utilizando base hexadecimal.
+	 * @param array
+	 * @return
+	 */
+	public String toStringHex(byte[] a)
+	{
+		return DatatypeConverter.printHexBinary(a);
+	}
+
+	/**
+	 * Método que convierte un string a un arreglo de bytes utilizando base hexadecimal.
+	 * @param array
+	 * @return
+	 */
+	public byte[] toArrayByte(String s)
+	{
+		return DatatypeConverter.parseHexBinary(s);
+	}
+
+	/**
+	 * Método que se encarga de realizar un cifrado asimentrico utilizando los parametros que recibe.
+	 * @param msg
+	 * @param keyPair que contiene un par de llaves.
+	 * @param alg
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws BadPaddingException
+	 */
+	public static byte[] AssymetricDecipher(byte[] msg, KeyPair key , String a) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,IllegalBlockSizeException, BadPaddingException
+	{
+		Cipher d = Cipher.getInstance(a); 
+		d.init(Cipher.DECRYPT_MODE, key.getPrivate()); 
+		return d.doFinal(msg);
+	}
+	
+	/**
+	 * Método que se encarga de realizar un cifrado asimentrico utilizando los parametros que recibe.
+	 * @param msg
+	 * @param keyPair que contine un par de llaves.
+	 * @param algo
+	 * @return
+	 * @throws IllegalBlockSizeException
+	 * @throws BadPaddingException
+	 * @throws InvalidKeyException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException
+	 */
+	public static byte[] AssymetricCipher(byte[] msg, KeyPair key , String a) throws IllegalBlockSizeException, BadPaddingException, InvalidKeyException,NoSuchAlgorithmException, NoSuchPaddingException
+	{
+		Cipher d = Cipher.getInstance(a); 
+		d.init(Cipher.ENCRYPT_MODE, key.getPublic()); 
+		return d.doFinal(msg);
+	}
+	
+	/**
+	 * Método que se encarga de realizar un cifrado asimentrico utilizando los parametros que recibe. 
+	 * @param msg
+	 * @param PublicKey que representa una llavepublica.
+	 * @param algo
+	 * @return
+	 * @throws IllegalBlockSizeException
+	 * @throws BadPaddingException
+	 * @throws InvalidKeyException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException
+	 */
+	public static byte[] AssymetricCipher(byte[] msg, PublicKey key , String a) throws IllegalBlockSizeException, BadPaddingException, InvalidKeyException,NoSuchAlgorithmException, NoSuchPaddingException
+	{
+		Cipher decifrador = Cipher.getInstance(a); 
+		decifrador.init(Cipher.ENCRYPT_MODE, key); 
+		return decifrador.doFinal(msg);
+	}
+
+	/**
+	 * Método que se encarga de genera un certificado a partir de el par de llaves que recibe como parametro.
+	 * @param pair
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws NoSuchProviderException
+	 * @throws SignatureException
+	 * @throws IllegalStateException
+	 * @throws NoSuchAlgorithmException
+	 * @throws CertificateException
+	 */
 	public static java.security.cert.X509Certificate generarCertificado(KeyPair pair) throws InvalidKeyException,
 	NoSuchProviderException, SignatureException, IllegalStateException, NoSuchAlgorithmException, CertificateException {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -251,10 +323,13 @@ public class Main {
 		certGen.addExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.digitalSignature| KeyUsage.keyEncipherment));
 		certGen.addExtension(X509Extensions.ExtendedKeyUsage, true, new ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth));
 
-		certGen.addExtension(X509Extensions.SubjectAlternativeName, false, new GeneralNames(
-				new GeneralName(GeneralName.rfc822Name, "test@test.test")));
+		certGen.addExtension(X509Extensions.SubjectAlternativeName, false, new GeneralNames(new GeneralName(GeneralName.rfc822Name, "test@test.test")));
 		return certGen.generate(pair.getPrivate(), "BC") ;
 	}
+	/**
+	 * Método Main que se encarga de inicializar la comunicacion entre el cliente y el servidor.
+	 * @param args
+	 */
 	public static void main(String[] args)
 	{
 		Main client = new Main();
