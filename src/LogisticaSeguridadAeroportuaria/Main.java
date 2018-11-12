@@ -45,7 +45,6 @@ import org.bouncycastle.x509.X509V3CertificateGenerator;
  * - Miguel Angel Puentes
  * - Kelvin Santiago Estupinan
  */
-
 public class Main
 {
 	public BufferedReader read;
@@ -61,7 +60,6 @@ public class Main
 	public String algoritmo1 = "RSA"; //RSA
 	public String algoritmo2 = "AES"; //AES
 	public String algoritmo3 = "HMACMD5"; //HMACMD5
-
 
 	/**
 	 * Método Constructor de la clase.
